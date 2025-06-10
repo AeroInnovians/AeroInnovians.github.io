@@ -151,7 +151,7 @@
             <div class="container">
                 <div class="section-title" data-aos="fade-up">
                     <h2>Live Air Quality Check</h2>
-                    <p>Enter a city to get the latest PM2.5 air quality data and personalized health suggestions.</p>
+                    <p>Enter a city, state, and country to get the latest PM2.5 air quality data and personalized health suggestions.</p>
                 </div>
                 <div class="row justify-content-center">
                     <div class="col-lg-8" data-aos="fade-up" data-aos-delay="100">
@@ -159,7 +159,7 @@
                             <div class="card-body p-4">
                                 <form id="aqi-form">
                                     <div class="input-group mb-3">
-                                        <input type="text" id="city-input" class="form-control form-control-lg" placeholder="Enter City Name (e.g., Delhi)" required>
+                                        <input type="text" id="city-input" class="form-control form-control-lg" placeholder="Enter City, State, Country (e.g., Los Angeles, California, USA)" required>
                                         <button class="btn btn-primary" type="submit" id="search-button">
                                             <i class="bi bi-search"></i> Search
                                         </button>
@@ -382,14 +382,13 @@
                 locationListContainer.innerHTML = ''; // Ensure location list is cleared
                 aiTipsLoader.style.display = 'none';
 
-                if (!iqairApiKey || iqairApiKey === "{YOUR_IQAIR_API_KEY}") {
-                    resultDisplay.innerHTML = `<div class="alert alert-danger">Please obtain an IQAir API key and replace "{YOUR_IQAIR_API_KEY}" in the code.</div>`;
+                if (!iqairApiKey) { // No longer checking for placeholder string, just if it's empty
+                    resultDisplay.innerHTML = `<div class="alert alert-danger">IQAir API key is missing. Please add your key to the code.</div>`;
                     loader.style.display = 'none';
                     return;
                 }
 
-                // IQAir API for city data. Note: IQAir API often requires state and country for specific cities.
-                // We'll simplify for now by just using city, but may need to guide user to be more specific.
+                // IQAir API for city data. Requires city, state, country for specificity.
                 const apiUrl = `https://api.airvisual.com/v2/city?city=${encodeURIComponent(city)}&state=${encodeURIComponent(state || '')}&country=${encodeURIComponent(country || '')}&key=${iqairApiKey}`;
 
                 try {
@@ -400,7 +399,7 @@
                         let errorMessage = `Failed to fetch air quality data for "${city}". `;
 
                         if (response.status === 400) {
-                            errorMessage += `Bad request: Invalid city, state, or country. IQAir API needs specific combinations. Please try a more common city name or include state/country for clarity.`;
+                            errorMessage += `Bad request: Invalid city, state, or country. IQAir API needs specific combinations. Please try entering "City, State, Country" (e.g., "Los Angeles, California, USA").`;
                         } else if (response.status === 404) {
                             errorMessage += `No data found for "${city}". It might not be covered by IQAir, or the city/state/country combination is incorrect.`;
                         } else if (response.status === 403) {
@@ -513,8 +512,16 @@
                 const state = parts.length > 1 ? parts[1] : '';
                 const country = parts.length > 2 ? parts[2] : '';
 
-                resultContainer.style.display = 'block'; // Make sure the container is visible
-                await fetchAndDisplayAQI(city, state, country);
+                // Basic validation for sufficient parts for IQAir API
+                if (city && country) { // At least city and country are often needed
+                    resultContainer.style.display = 'block'; // Make sure the container is visible
+                    await fetchAndDisplayAQI(city, state, country);
+                } else {
+                    resultDisplay.innerHTML = `<div class="alert alert-danger">Please enter the city, state (optional), and country in the format "City, State, Country" (e.g., "Delhi, Delhi, India" or "London, , UK").</div>`;
+                    aiTipsDisplay.innerHTML = '';
+                    loader.style.display = 'none';
+                    resultContainer.style.display = 'block';
+                }
             });
 
             // Adding custom styles for AQI alerts
