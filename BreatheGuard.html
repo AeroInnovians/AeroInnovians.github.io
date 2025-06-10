@@ -103,8 +103,8 @@
                                 BreatheGuard is an innovative web-based application by AeroInnovians that empowers users to check air pollution levels in any city using real-time AQI data. Based on air quality, it offers science-backed health advice tailored to the pollution severity.
                             </p>
                             <ul>
-                                <li><i class="bi bi-broadcast"></i> <strong>Real-time air quality data.</strong></li>
-                                <li><i class="bi bi-lightbulb"></i> <strong>Actionable health recommendations.</strong></li>
+                                <li><i class="bi bi-broadcast"></i> <strong>Real-time air quality data (via IQAir).</strong></li>
+                                <li><i class="bi bi-lightbulb"></i> <strong>Actionable health recommendations (via Gemini AI).</strong></li>
                                 <li><i class="bi bi-globe-americas"></i> <strong>Designed for global cities.</strong></li>
                             </ul>
                         </div>
@@ -118,21 +118,21 @@
             <div class="container">
                 <div class="section-title" data-aos="fade-up">
                     <h2>Why Choose BreatheGuard?</h2>
-                    <p>Harnessing the power of AI to bring you actionable health insights.</p>
+                    <p>Harnessing the power of real-time data and AI to bring you actionable health insights.</p>
                 </div>
                 <div class="row gy-4">
                     <div class="col-lg-4 col-md-6" data-aos="fade-up" data-aos-delay="100">
                         <div class="feature-item">
                             <i class="bi bi-cloud-haze2" style="color: #ffbb2c;"></i>
-                            <h3>Simulated AQI Monitoring</h3>
-                            <p>Generates real-time-like air quality for your city, focusing on the most harmful pollutants like PM2.5, using AI.</p>
+                            <h3>Live AQI Monitoring</h3>
+                            <p>Tracks real-time air quality for your city, focusing on the most harmful pollutants like PM2.5, directly from IQAir.</p>
                         </div>
                     </div>
                     <div class="col-lg-4 col-md-6" data-aos="fade-up" data-aos-delay="200">
                         <div class="feature-item">
                             <i class="bi bi-clipboard2-pulse" style="color: #5578ff;"></i>
                             <h3>Personalized Health Tips</h3>
-                            <p>Provides AI-generated recommendations based on simulated AQI levels to help you minimize health risks.</p>
+                            <p>Provides AI-generated recommendations based on live AQI levels to help you minimize health risks.</p>
                         </div>
                     </div>
                     <div class="col-lg-4 col-md-6" data-aos="fade-up" data-aos-delay="300">
@@ -151,7 +151,7 @@
             <div class="container">
                 <div class="section-title" data-aos="fade-up">
                     <h2>Live Air Quality Check</h2>
-                    <p>Enter a city name to get simulated PM2.5 air quality data and personalized health suggestions.</p>
+                    <p>Enter a city to get the latest PM2.5 air quality data and personalized health suggestions.</p>
                 </div>
                 <div class="row justify-content-center">
                     <div class="col-lg-8" data-aos="fade-up" data-aos-delay="100">
@@ -185,7 +185,7 @@
                                     <div id="ai-tips-display" class="mt-4"></div>
                                 </div>
                                 <div class="text-center mt-3">
-                                    <small class="text-muted">All data (simulated AQI and tips) powered by <a href="https://developers.generativeai.google/models/gemini" target="_blank" rel="noopener noreferrer">Gemini API</a>.</small>
+                                    <small class="text-muted">AQI data powered by <a href="https://www.iqair.com/air-pollution-data-api" target="_blank" rel="noopener noreferrer">IQAir</a>. Personalized tips by <a href="https://developers.generativeai.google/models/gemini" target="_blank" rel="noopener noreferrer">Gemini API</a>.</small>
                                 </div>
                             </div>
                         </div>
@@ -294,7 +294,7 @@
             const resultContainer = document.getElementById('result-container');
             const resultDisplay = document.getElementById('result-display');
             const loader = document.getElementById('loader');
-            const locationListContainer = document.getElementById('location-list-container'); // Container for location list
+            const locationListContainer = document.getElementById('location-list-container');
             const aiTipsLoader = document.getElementById('ai-tips-loader');
             const aiTipsDisplay = document.getElementById('ai-tips-display');
 
@@ -311,11 +311,11 @@
                     };
                 }
 
-                const apiKey = ""; // Canvas will provide this dynamically
-                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+                const geminiApiKey = ""; // Canvas provides this automatically; leave as ""
+                const geminiApiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiApiKey}`;
 
                 try {
-                    const response = await fetch(apiUrl, {
+                    const response = await fetch(geminiApiUrl, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(payload)
@@ -349,63 +349,127 @@
                     } else {
                          displayMessage = `An unexpected AI error occurred: ${error.message}.`;
                     }
-                    throw new Error(displayMessage); // Re-throw to be caught by calling function
+                    throw new Error(displayMessage);
                 }
             }
 
-            // Function to fetch and display AQI for a specific location
-            const fetchAndDisplayAQIForLocation = async (locationName, cityName, simulatedAqiValue) => {
+            // --- IQAir API Key ---
+            // IMPORTANT SECURITY NOTE:
+            // Storing API keys directly in client-side JavaScript (like this) is NOT secure.
+            // Anyone can view this key using browser developer tools.
+            // For production applications, always use a server-side proxy to hide API keys.
+            // Your provided key: a3b2becb-4a65-48b8-aeef-21c3b677375a
+            const iqairApiKey = "a3b2becb-4a65-48b8-aeef-21c3b677375a"; 
+
+            // Function to determine health suggestion based on AQI value (from IQAir)
+            const getHealthSuggestion = (aqi) => {
+                if (aqi === null || typeof aqi === 'undefined') {
+                    return { suggestion: "Could not retrieve valid AQI data.", colorClass: "alert-secondary", category: "Unknown" };
+                }
+                if (aqi <= 50) return { suggestion: "Air quality is satisfactory. Enjoy your usual outdoor activities.", colorClass: "alert-success", category: "Good" };
+                if (aqi <= 100) return { suggestion: "Unusually sensitive individuals should consider reducing prolonged or heavy exertion outdoors.", colorClass: "alert-warning", category: "Moderate" };
+                if (aqi <= 150) return { suggestion: "People with heart or lung disease, older adults, and children should reduce prolonged or heavy exertion.", colorClass: "alert-orange", category: "Unhealthy for Sensitive Groups" };
+                if (aqi <= 200) return { suggestion: "Everyone should reduce prolonged or heavy exertion. It's advisable to wear a mask outdoors.", colorClass: "alert-danger", category: "Unhealthy" };
+                if (aqi <= 300) return { suggestion: "Avoid all physical activity outdoors. People with respiratory or heart problems should remain indoors.", colorClass: "alert-purple", category: "Very Unhealthy" };
+                return { suggestion: "Everyone should avoid all outdoor exertion. Remain indoors and keep activity levels low.", colorClass: "alert-maroon", category: "Hazardous" };
+            };
+
+            // Function to fetch and display AQI for a specific city/state/country using IQAir API
+            const fetchAndDisplayAQI = async (city, state, country) => {
                 loader.style.display = 'block';
-                resultDisplay.innerHTML = ''; // Clear previous AQI results
-                aiTipsDisplay.innerHTML = ''; // Clear previous AI tips
-                locationListContainer.innerHTML = ''; // Clear location list
-                aiTipsLoader.style.display = 'none'; // Ensure AI loader is hidden
+                resultDisplay.innerHTML = '';
+                aiTipsDisplay.innerHTML = '';
+                locationListContainer.innerHTML = ''; // Ensure location list is cleared
+                aiTipsLoader.style.display = 'none';
+
+                if (!iqairApiKey || iqairApiKey === "{YOUR_IQAIR_API_KEY}") {
+                    resultDisplay.innerHTML = `<div class="alert alert-danger">Please obtain an IQAir API key and replace "{YOUR_IQAIR_API_KEY}" in the code.</div>`;
+                    loader.style.display = 'none';
+                    return;
+                }
+
+                // IQAir API for city data. Note: IQAir API often requires state and country for specific cities.
+                // We'll simplify for now by just using city, but may need to guide user to be more specific.
+                const apiUrl = `https://api.airvisual.com/v2/city?city=${encodeURIComponent(city)}&state=${encodeURIComponent(state || '')}&country=${encodeURIComponent(country || '')}&key=${iqairApiKey}`;
 
                 try {
-                    // Ask Gemini to provide detailed AQI data and suggestion based on the simulated value
-                    const prompt = `Simulate a detailed PM2.5 air quality reading for "${locationName}" in "${cityName}", assuming a PM2.5 value of ${simulatedAqiValue.toFixed(2)} µg/m³. Provide the AQI category (e.g., Good, Moderate, Unhealthy for Sensitive Groups, Unhealthy, Very Unhealthy, Hazardous) and a concise health suggestion for that category. Return in JSON format.`;
-                    const schema = {
-                        type: "OBJECT",
-                        properties: {
-                            "aqiValue": { "type": "NUMBER" },
-                            "location": { "type": "STRING" },
-                            "parameter": { "type": "STRING" },
-                            "category": { "type": "STRING" },
-                            "suggestion": { "type": "STRING" }
-                        },
-                        required: ["aqiValue", "location", "parameter", "category", "suggestion"]
-                    };
+                    const response = await fetch(apiUrl);
+                    if (!response.ok) {
+                        const errorText = await response.text();
+                        console.error(`IQAir API HTTP error! Status: ${response.status}, Raw Response: ${errorText}`);
+                        let errorMessage = `Failed to fetch air quality data for "${city}". `;
 
-                    const aqiDetails = await callGeminiAPI(prompt, schema);
+                        if (response.status === 400) {
+                            errorMessage += `Bad request: Invalid city, state, or country. IQAir API needs specific combinations. Please try a more common city name or include state/country for clarity.`;
+                        } else if (response.status === 404) {
+                            errorMessage += `No data found for "${city}". It might not be covered by IQAir, or the city/state/country combination is incorrect.`;
+                        } else if (response.status === 403) {
+                            errorMessage += `Authentication error: Invalid or missing IQAir API key. Please double-check your key.`;
+                        } else if (response.status === 429) {
+                            errorMessage += `IQAir API rate limit exceeded. Please wait a moment and try again.`;
+                        } else {
+                            errorMessage += `An unexpected server response occurred (Status: ${response.status}).`;
+                        }
+                        resultDisplay.innerHTML = `<div class="alert alert-danger">${errorMessage}</div>`;
+                        return;
+                    }
                     
-                    if (aqiDetails && aqiDetails.aqiValue !== null) {
+                    const data = await response.json();
+                    
+                    if (data.status === 'success' && data.data && data.data.current && data.data.current.pollution) {
+                        const aqiValue = data.data.current.pollution.aqius; // US AQI
+                        const pollutant = data.data.current.pollution.main; // Dominant pollutant
+                        const locationName = data.data.city; // IQAir provides city directly
+                        const suggestionDetails = getHealthSuggestion(aqiValue);
+
                         resultDisplay.innerHTML = `
-                            <div class="alert ${getColorClass(aqiDetails.category)} text-white">
-                                <h4 class="alert-heading">Air Quality in ${aqiDetails.location} (${cityName.charAt(0).toUpperCase() + cityName.slice(1)})</h4>
-                                <p><strong>${aqiDetails.parameter} Level:</strong> ${aqiDetails.aqiValue.toFixed(2)} µg/m³</p>
+                            <div class="alert ${suggestionDetails.colorClass} text-white">
+                                <h4 class="alert-heading">Air Quality in ${locationName} (${data.data.state}, ${data.data.country})</h4>
+                                <p><strong>AQI (US):</strong> ${aqiValue}</p>
+                                <p><strong>Dominant Pollutant:</strong> ${pollutant.toUpperCase()}</p>
                                 <hr>
-                                <p class="mb-0"><strong>${aqiDetails.category}:</strong> ${aqiDetails.suggestion}</p>
+                                <p class="mb-0"><strong>${suggestionDetails.category}:</strong> ${suggestionDetails.suggestion}</p>
                             </div>`;
-                        await generateAIHealthTips(cityName, aqiDetails.aqiValue, aqiDetails.category);
-                    } else {
-                        resultDisplay.innerHTML = `<div class="alert alert-danger">Could not simulate detailed AQI data for station "${locationName}". Please try again.</div>`;
+                        
+                        // Use Gemini for personalized tips based on the live AQI
+                        await generateAIHealthTips(locationName, aqiValue, suggestionDetails.category);
+
+                    } else if (data.status === 'fail') {
+                         resultDisplay.innerHTML = `<div class="alert alert-danger">IQAir API reported an error: ${data.data.message || 'Unknown error'}. Please check your input or API key.</div>`;
+                    }
+                    else {
+                        resultDisplay.innerHTML = `<div class="alert alert-danger">No live PM2.5 air quality data available for "${city}". This might be due to:
+                            <ul>
+                                <li>The city/state/country combination not being specific enough or incorrect for IQAir.</li>
+                                <li>No active sensors reporting data for this specific location.</li>
+                                <li>The location might not be covered by IQAir.</li>
+                            </ul>
+                            Please try a more specific location (e.g., "Los Angeles, California, USA") or a different major city.
+                        </div>`;
                     }
 
                 } catch (error) {
-                    console.error("Error fetching detailed AQI from Gemini:", error);
-                    resultDisplay.innerHTML = `<div class="alert alert-danger">${error.message || "An unexpected error occurred while fetching detailed AQI data."}</div>`;
+                    console.error("IQAir API Fetch Error:", error);
+                    let displayMessage = `An unexpected error occurred while fetching air quality data.`;
+                    if (error instanceof TypeError && String(error).includes('Failed to fetch')) {
+                        displayMessage = `Network error: Could not connect to the IQAir service. This could be a temporary network issue, an invalid API key, or a CORS policy issue if hosted on GitHub Pages without a proxy. Please check your browser's console for details.`;
+                    } else if (error instanceof SyntaxError && String(error).includes('JSON')) {
+                        displayMessage = `Data format error: The IQAir service sent an unreadable response.`;
+                    } else {
+                         displayMessage = `An unexpected JavaScript error occurred: ${error.message}.`;
+                    }
+                    resultDisplay.innerHTML = `<div class="alert alert-danger">${displayMessage}</div>`;
                 } finally {
                     loader.style.display = 'none';
                 }
             };
-
 
             // Function to generate personalized health tips using Gemini API
             const generateAIHealthTips = async (city, aqiValue, aqiCategory) => {
                 aiTipsDisplay.innerHTML = ''; // Clear previous AI tips
                 aiTipsLoader.style.display = 'block'; // Show AI tips loader
 
-                const prompt = `Given that the air quality in ${city} for PM2.5 is ${aqiValue.toFixed(2)} µg/m³, which is categorized as "${aqiCategory}", provide 3-4 personalized and actionable health tips for a general resident. Focus on practical advice for daily life (e.g., outdoor activities, ventilation, diet). Keep the tips concise and direct.`;
+                const prompt = `Given that the air quality in ${city} has an AQI of ${aqiValue} (categorized as "${aqiCategory}"), provide 3-4 personalized and actionable health tips for a general resident. Focus on practical advice for daily life (e.g., outdoor activities, ventilation, diet). Keep the tips concise and direct.`;
                 
                 try {
                     const aiText = await callGeminiAPI(prompt); // No schema needed for free-form text
@@ -427,88 +491,14 @@
                 }
             };
 
-            // Function to handle the initial city search and display locations
-            const handleCitySearch = async (city, originalCityName) => {
-                loader.style.display = 'block';
-                resultDisplay.innerHTML = ''; // Clear previous AQI results
-                aiTipsDisplay.innerHTML = ''; // Clear previous AI tips
-                locationListContainer.innerHTML = ''; // Clear previous location list
-                aiTipsLoader.style.display = 'none'; // Ensure AI loader is hidden
-
-                try {
-                    // Ask Gemini to list plausible mock locations and simulated AQI values for them
-                    const prompt = `For the city of "${city}", generate a list of 3-5 plausible air quality monitoring station names (locations) and a simulated PM2.5 air quality index (AQI) value for each. Ensure the AQI values cover a range of categories (Good, Moderate, Unhealthy for Sensitive Groups, Unhealthy, etc.). Return as a JSON array of objects.`;
-                    const schema = {
-                        type: "ARRAY",
-                        items: {
-                            type: "OBJECT",
-                            properties: {
-                                "locationName": { "type": "STRING" },
-                                "simulatedAqiValue": { "type": "NUMBER" }
-                            },
-                            required: ["locationName", "simulatedAqiValue"]
-                        }
-                    };
-                    const locations = await callGeminiAPI(prompt, schema);
-                    
-                    if (locations && locations.length > 0) {
-                        let locationsHtml = `<p>Select a station in ${originalCityName.charAt(0).toUpperCase() + originalCityName.slice(1)}:</p><ul class="list-group">`;
-                        locations.forEach((locData) => {
-                            // Ensure the AQI value is within a reasonable range for display purposes
-                            const displayAqi = Math.max(0, Math.min(500, locData.simulatedAqiValue)); 
-                            locationsHtml += `
-                                <li class="list-group-item list-group-item-action" 
-                                    data-location="${locData.locationName}" 
-                                    data-city="${originalCityName}"
-                                    data-aqi="${displayAqi}"
-                                    style="cursor: pointer;">
-                                    <strong>${locData.locationName}</strong> (Simulated PM2.5: ${displayAqi.toFixed(2)} µg/m³)
-                                </li>`;
-                        });
-                        locationsHtml += `</ul>`;
-                        locationListContainer.innerHTML = locationsHtml;
-
-                        // Attach event listeners to each location item
-                        locationListContainer.querySelectorAll('.list-group-item-action').forEach(item => {
-                            item.addEventListener('click', () => {
-                                const selectedLocation = item.dataset.location;
-                                const selectedCity = item.dataset.city;
-                                const simulatedAqi = parseFloat(item.dataset.aqi); // Pass the simulated AQI
-                                fetchAndDisplayAQIForLocation(selectedLocation, selectedCity, simulatedAqi);
-                            });
-                        });
-                    } else {
-                        resultDisplay.innerHTML = `<div class="alert alert-danger">The AI could not generate air quality stations for "${originalCityName}". Please try a different city.</div>`;
-                    }
-
-                } catch (error) {
-                    console.error("Error searching for locations from Gemini:", error);
-                    resultDisplay.innerHTML = `<div class="alert alert-danger">${error.message || "An unexpected error occurred while searching for stations."}</div>`;
-                } finally {
-                    loader.style.display = 'none';
-                }
-            };
-
-
-            // Helper function to get Bootstrap alert color class based on category
-            const getColorClass = (category) => {
-                switch (category) {
-                    case "Good": return "alert-success";
-                    case "Moderate": return "alert-warning";
-                    case "Unhealthy for Sensitive Groups": return "alert-orange";
-                    case "Unhealthy": return "alert-danger";
-                    case "Very Unhealthy": return "alert-purple";
-                    case "Hazardous": return "alert-maroon";
-                    default: return "alert-secondary";
-                }
-            };
 
             // Event listener for form submission (initial city search)
             aqiForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
-                let city = cityInput.value.trim().replace(/[^a-zA-Z\s]+$/, '').replace(/\s+/g, ' ');
+                // Clean the city input: remove leading/trailing whitespace, non-alphanumeric characters at the end, and multiple internal spaces
+                let fullCityInput = cityInput.value.trim().replace(/\s+/g, ' ');
                 
-                if (!city) {
+                if (!fullCityInput) {
                     resultDisplay.innerHTML = `<div class="alert alert-danger">Please enter a valid city name.</div>`;
                     aiTipsDisplay.innerHTML = '';
                     loader.style.display = 'none';
@@ -516,9 +506,15 @@
                     return;
                 }
 
-                const originalCityName = cityInput.value.trim();
+                // Simple parsing for city, state, country - user needs to input clearly
+                // e.g., "Los Angeles, California, USA"
+                const parts = fullCityInput.split(',').map(p => p.trim());
+                const city = parts[0];
+                const state = parts.length > 1 ? parts[1] : '';
+                const country = parts.length > 2 ? parts[2] : '';
+
                 resultContainer.style.display = 'block'; // Make sure the container is visible
-                await handleCitySearch(city, originalCityName);
+                await fetchAndDisplayAQI(city, state, country);
             });
 
             // Adding custom styles for AQI alerts
