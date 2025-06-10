@@ -309,7 +309,7 @@
             };
 
             // Function to render the AQI data and call for AI tips
-            const renderResult = async (data, city) => {
+            const renderResult = async (data, originalCity) => {
                 let aqiValue = null;
                 let location = 'N/A';
                 let parameter = 'PM2.5';
@@ -318,7 +318,7 @@
                 // Find PM2.5 data, which is most commonly used for AQI
                 if (data && data.results && data.results.length > 0) {
                     // Try to find the most recent PM2.5 measurement for the requested city
-                    const cityData = data.results.find(res => res.city.toLowerCase() === city.toLowerCase() || res.location.toLowerCase().includes(city.toLowerCase()));
+                    const cityData = data.results.find(res => res.city.toLowerCase() === originalCity.toLowerCase() || res.location.toLowerCase().includes(originalCity.toLowerCase()));
 
                     if (cityData) {
                         const measurement = cityData.measurements.find(m => m.parameter === 'pm25');
@@ -337,7 +337,7 @@
                             parameter = firstMeasurement.parameter.toUpperCase();
                             suggestionDetails = getHealthSuggestion(aqiValue);
                             // Inform user that a nearby location's data is shown
-                            resultDisplay.innerHTML += `<div class="alert alert-info mt-2">No exact PM2.5 data found for "${cityInput.value}". Displaying data for a nearby location: ${location}.</div>`;
+                            resultDisplay.innerHTML += `<div class="alert alert-info mt-2">No exact PM2.5 data found for "${originalCity}". Displaying data for a nearby location: ${location}.</div>`;
                         }
                     }
                 }
@@ -346,17 +346,17 @@
                 if (aqiValue !== null) {
                     resultDisplay.innerHTML = `
                         <div class="alert ${suggestionDetails.colorClass} text-white">
-                            <h4 class="alert-heading">Air Quality in ${cityInput.value.trim().charAt(0).toUpperCase() + cityInput.value.trim().slice(1)} - ${location}</h4>
+                            <h4 class="alert-heading">Air Quality in ${originalCity.charAt(0).toUpperCase() + originalCity.slice(1)} - ${location}</h4>
                             <p><strong>${parameter} Level:</strong> ${aqiValue.toFixed(2)} µg/m³</p>
                             <hr>
                             <p class="mb-0">${suggestionDetails.suggestion}</p>
                         </div>`;
                     
                     // Call AI to generate personalized tips
-                    await generateAIHealthTips(city, aqiValue, suggestionDetails.category);
+                    await generateAIHealthTips(originalCity, aqiValue, suggestionDetails.category);
 
                 } else {
-                    resultDisplay.innerHTML = `<div class="alert alert-danger">Sorry, we couldn't find PM2.5 data for "${cityInput.value}". Please check the city name or try another nearby major city.</div>`;
+                    resultDisplay.innerHTML = `<div class="alert alert-danger">Sorry, we couldn't find PM2.5 data for "${originalCity}". Please check the city name or try another nearby major city.</div>`;
                     aiTipsDisplay.innerHTML = ''; // Clear any previous AI tips
                 }
             };
@@ -411,8 +411,19 @@
             // Event listener for form submission
             aqiForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
-                const city = cityInput.value.trim();
-                if (!city) return;
+                // Clean the city input: remove leading/trailing whitespace and any non-alphanumeric characters at the end
+                let city = cityInput.value.trim().replace(/[^a-zA-Z\s]+$/, '');
+                
+                if (!city) {
+                    resultDisplay.innerHTML = `<div class="alert alert-danger">Please enter a valid city name.</div>`;
+                    aiTipsDisplay.innerHTML = '';
+                    loader.style.display = 'none';
+                    resultContainer.style.display = 'block';
+                    return;
+                }
+
+                // Store the original city name to display in the result
+                const originalCityName = cityInput.value.trim();
 
                 // Show main loader and hide previous results
                 loader.style.display = 'block';
@@ -422,18 +433,21 @@
                 aiTipsLoader.style.display = 'none'; // Ensure AI loader is hidden initially
 
                 // OpenAQ API URL - fetching latest data for the city
-                // Increased limit to get more results if a direct match isn't the first one,
-                // and changed parameter to pm25 for more accurate filtering.
-                // Also, removed radius and order_by for simpler initial search, relying on the API's default sorting for 'latest'.
                 const apiUrl = `https://api.openaq.org/v2/latest?limit=10&city=${encodeURIComponent(city)}&parameter=pm25`;
 
                 try {
                     const response = await fetch(apiUrl);
                     if (!response.ok) {
-                        throw new Error(`HTTP error! status: ${response.status}`);
+                        // Check if the error is due to a bad request (e.g., city not found)
+                        if (response.status === 400 || response.status === 404) {
+                             resultDisplay.innerHTML = `<div class="alert alert-danger">No air quality data found for "${originalCityName}". Please check the city name and try again.</div>`;
+                        } else {
+                            throw new Error(`HTTP error! status: ${response.status}`);
+                        }
+                    } else {
+                        const data = await response.json();
+                        await renderResult(data, originalCityName); // Pass originalCityName to renderResult for display
                     }
-                    const data = await response.json();
-                    await renderResult(data, city); // Pass city to renderResult for better matching
                 } catch (error) {
                     console.error("OpenAQ API Fetch Error:", error);
                     resultDisplay.innerHTML = `<div class="alert alert-danger">An error occurred while fetching the air quality data. Please try again later.</div>`;
