@@ -311,7 +311,8 @@
                     };
                 }
 
-                const geminiApiKey = ""; // Canvas provides this automatically; leave as ""
+                // YOUR GEMINI API KEY
+                const geminiApiKey = "AIzaSyB_N_CpGSQLajD5ZMouOWYNe1Zyblrzu0A"; 
                 const geminiApiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiApiKey}`;
 
                 try {
@@ -439,7 +440,7 @@
 
 
                         resultDisplay.innerHTML = `
-                            <div class="alert ${suggestionDetails.colorClass} text-white">
+                            <div class="alert ${suggestionDetails.colorClass} text-dark"> <!-- Changed text-white to text-dark for warnings -->
                                 <h4 class="alert-heading">Air Quality in ${locationName}${locationDetail}</h4>
                                 <p><strong>AQI (US):</strong> ${aqiValue}</p>
                                 <p><strong>Dominant Pollutant:</strong> ${pollutantDisplay}</p>
@@ -547,6 +548,7 @@
                 .alert-orange { background-color: #fd7e14; color: white; border-color: #fd7e14; }
                 .alert-purple { background-color: #6f42c1; color: white; border-color: #6f42c1; }
                 .alert-maroon { background-color: #8B0000; color: white; border-color: #8B0000; }
+                .alert-warning { color: #333; background-color: #fff3cd; border-color: #ffecb5; } /* Adjusted for better contrast */
                 .list-group-item-action:hover {
                     background-color: #e9ecef; /* Lighter hover for Bootstrap list group items */
                     color: #0056b3; /* Darker text on hover */
