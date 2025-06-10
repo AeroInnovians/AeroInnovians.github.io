@@ -368,7 +368,8 @@
                     console.error("OpenAQ API Fetch Error:", error);
                     let displayMessage = `An unexpected error occurred while fetching AQI data.`;
                     if (error instanceof TypeError && String(error).includes('Failed to fetch')) {
-                        displayMessage = `Network error: Could not connect to the air quality service. Please check your internet connection or try again later.`;
+                        // This specific message suggests a CORS issue or network blockade
+                        displayMessage = `Network error: Could not connect to the air quality service. This is often due to browser security (CORS policy) when hosting on platforms like GitHub Pages. Please try running the app locally or check your browser's console for more details.`;
                     } else if (error instanceof SyntaxError && String(error).includes('JSON')) {
                         displayMessage = `Data format error: The air quality service sent an unreadable response.`;
                     } else {
@@ -538,7 +539,8 @@
                     console.error("OpenAQ API Fetch Error (for locations):", error);
                     let displayMessage = `An unexpected error occurred while searching for stations.`;
                     if (error instanceof TypeError && String(error).includes('Failed to fetch')) {
-                        displayMessage = `Network error: Could not connect to the air quality service. Please check your internet connection or try again later.`;
+                        // This specific message suggests a CORS issue or network blockade
+                        displayMessage = `Network error: Could not connect to the air quality service. This is often due to browser security (CORS policy) when hosting on platforms like GitHub Pages. Please try running the app locally or check your browser's console for more details.`;
                     } else if (error instanceof SyntaxError && String(error).includes('JSON')) {
                         displayMessage = `Data format error: The air quality service sent an unreadable response when fetching locations.`;
                     } else {
