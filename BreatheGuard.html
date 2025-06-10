@@ -103,7 +103,7 @@
                                 BreatheGuard is an innovative web-based application by AeroInnovians that empowers users to check air pollution levels in any city using real-time AQI data. Based on air quality, it offers science-backed health advice tailored to the pollution severity.
                             </p>
                             <ul>
-                                <li><i class="bi bi-broadcast"></i> <strong>Real-time air quality data from OpenAQ.</strong></li>
+                                <li><i class="bi bi-broadcast"></i> <strong>Real-time air quality data.</strong></li>
                                 <li><i class="bi bi-lightbulb"></i> <strong>Actionable health recommendations.</strong></li>
                                 <li><i class="bi bi-globe-americas"></i> <strong>Designed for global cities.</strong></li>
                             </ul>
@@ -118,21 +118,21 @@
             <div class="container">
                 <div class="section-title" data-aos="fade-up">
                     <h2>Why Choose BreatheGuard?</h2>
-                    <p>Harnessing the power of real-time data to bring you actionable health insights.</p>
+                    <p>Harnessing the power of AI to bring you actionable health insights.</p>
                 </div>
                 <div class="row gy-4">
                     <div class="col-lg-4 col-md-6" data-aos="fade-up" data-aos-delay="100">
                         <div class="feature-item">
                             <i class="bi bi-cloud-haze2" style="color: #ffbb2c;"></i>
-                            <h3>Live AQI Monitoring</h3>
-                            <p>Tracks real-time air quality for your city, focusing on the most harmful pollutants like PM2.5.</p>
+                            <h3>Simulated AQI Monitoring</h3>
+                            <p>Generates real-time-like air quality for your city, focusing on the most harmful pollutants like PM2.5, using AI.</p>
                         </div>
                     </div>
                     <div class="col-lg-4 col-md-6" data-aos="fade-up" data-aos-delay="200">
                         <div class="feature-item">
                             <i class="bi bi-clipboard2-pulse" style="color: #5578ff;"></i>
-                            <h3>Health Tips Engine</h3>
-                            <p>Provides WHO-aligned recommendations based on AQI levels to help you minimize health risks.</p>
+                            <h3>Personalized Health Tips</h3>
+                            <p>Provides AI-generated recommendations based on simulated AQI levels to help you minimize health risks.</p>
                         </div>
                     </div>
                     <div class="col-lg-4 col-md-6" data-aos="fade-up" data-aos-delay="300">
@@ -151,7 +151,7 @@
             <div class="container">
                 <div class="section-title" data-aos="fade-up">
                     <h2>Live Air Quality Check</h2>
-                    <p>Enter a city name to get the latest PM2.5 air quality data and personalized health suggestions.</p>
+                    <p>Enter a city name to get simulated PM2.5 air quality data and personalized health suggestions.</p>
                 </div>
                 <div class="row justify-content-center">
                     <div class="col-lg-8" data-aos="fade-up" data-aos-delay="100">
@@ -185,7 +185,7 @@
                                     <div id="ai-tips-display" class="mt-4"></div>
                                 </div>
                                 <div class="text-center mt-3">
-                                    <small class="text-muted">AQI data powered by <a href="https://openaq.org" target="_blank" rel="noopener noreferrer">OpenAQ</a>. Personalized tips by <a href="https://developers.generativeai.google/models/gemini" target="_blank" rel="noopener noreferrer">Gemini API</a>.</small>
+                                    <small class="text-muted">All data (simulated AQI and tips) powered by <a href="https://developers.generativeai.google/models/gemini" target="_blank" rel="noopener noreferrer">Gemini API</a>.</small>
                                 </div>
                             </div>
                         </div>
@@ -294,88 +294,106 @@
             const resultContainer = document.getElementById('result-container');
             const resultDisplay = document.getElementById('result-display');
             const loader = document.getElementById('loader');
-            const locationListContainer = document.getElementById('location-list-container'); // New container for location list
+            const locationListContainer = document.getElementById('location-list-container'); // Container for location list
             const aiTipsLoader = document.getElementById('ai-tips-loader');
             const aiTipsDisplay = document.getElementById('ai-tips-display');
 
-            // Function to determine health suggestion based on AQI value
-            const getHealthSuggestion = (aqi) => {
-                if (aqi === null || typeof aqi === 'undefined') {
-                    return { suggestion: "Could not retrieve valid AQI data.", colorClass: "alert-secondary", category: "Unknown" };
+            // --- Gemini API Call Helper ---
+            async function callGeminiAPI(prompt, schema = null) {
+                let chatHistory = [];
+                chatHistory.push({ role: "user", parts: [{ text: prompt }] });
+                
+                const payload = { contents: chatHistory };
+                if (schema) {
+                    payload.generationConfig = {
+                        responseMimeType: "application/json",
+                        responseSchema: schema
+                    };
                 }
-                if (aqi <= 50) return { suggestion: "<strong>Good:</strong> Air quality is satisfactory. Enjoy your usual outdoor activities.", colorClass: "alert-success", category: "Good" };
-                if (aqi <= 100) return { suggestion: "<strong>Moderate:</strong> Unusually sensitive individuals should consider reducing prolonged or heavy exertion outdoors.", colorClass: "alert-warning", category: "Moderate" };
-                if (aqi <= 150) return { suggestion: "<strong>Unhealthy for Sensitive Groups:</strong> People with heart or lung disease, older adults, and children should reduce prolonged or heavy exertion.", colorClass: "alert-orange", category: "Unhealthy for Sensitive Groups" };
-                if (aqi <= 200) return { suggestion: "<strong>Unhealthy:</strong> Everyone should reduce prolonged or heavy exertion. It's advisable to wear a mask outdoors.", colorClass: "alert-danger", category: "Unhealthy" };
-                if (aqi <= 300) return { suggestion: "<strong>Very Unhealthy:</strong> Avoid all physical activity outdoors. People with respiratory or heart problems should remain indoors.", colorClass: "alert-purple", category: "Very Unhealthy" };
-                return { suggestion: "<strong>Hazardous:</strong> Everyone should avoid all outdoor exertion. Remain indoors and keep activity levels low.", colorClass: "alert-maroon", category: "Hazardous" };
-            };
+
+                const apiKey = ""; // Canvas will provide this dynamically
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+
+                try {
+                    const response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (!response.ok) {
+                        const errorText = await response.text();
+                        console.error(`Gemini API HTTP error! Status: ${response.status}, Raw Response: ${errorText}`);
+                        throw new Error(`Gemini API returned status ${response.status}: ${errorText.substring(0, 200)}...`);
+                    }
+
+                    const result = await response.json();
+
+                    if (result.candidates && result.candidates.length > 0 &&
+                        result.candidates[0].content && result.candidates[0].content.parts &&
+                        result.candidates[0].content.parts.length > 0) {
+                        const responseContent = result.candidates[0].content.parts[0].text;
+                        return schema ? JSON.parse(responseContent) : responseContent;
+                    } else {
+                        throw new Error("Gemini API response contained no valid candidates.");
+                    }
+                } catch (error) {
+                    console.error("Gemini API Call Error:", error);
+                    let displayMessage = `An unexpected error occurred with the AI service.`;
+                    if (error instanceof TypeError && String(error).includes('Failed to fetch')) {
+                        displayMessage = `Network error: Could not connect to the AI service. Please check your internet connection or try again later.`;
+                    } else if (error instanceof SyntaxError && String(error).includes('JSON')) {
+                        displayMessage = `AI service data format error: The AI service sent an unreadable response.`;
+                    } else if (error.message.includes('status 429')) {
+                        displayMessage = `AI service rate limit exceeded. Please wait a moment and try again.`;
+                    } else {
+                         displayMessage = `An unexpected AI error occurred: ${error.message}.`;
+                    }
+                    throw new Error(displayMessage); // Re-throw to be caught by calling function
+                }
+            }
 
             // Function to fetch and display AQI for a specific location
-            const fetchAndDisplayAQIForLocation = async (locationName, cityName) => {
+            const fetchAndDisplayAQIForLocation = async (locationName, cityName, simulatedAqiValue) => {
                 loader.style.display = 'block';
                 resultDisplay.innerHTML = ''; // Clear previous AQI results
                 aiTipsDisplay.innerHTML = ''; // Clear previous AI tips
                 locationListContainer.innerHTML = ''; // Clear location list
-
-                const apiUrl = `https://api.openaq.org/v2/latest?limit=1&location=${encodeURIComponent(locationName)}&parameter=pm25`;
+                aiTipsLoader.style.display = 'none'; // Ensure AI loader is hidden
 
                 try {
-                    const response = await fetch(apiUrl);
-                    if (!response.ok) {
-                        const errorText = await response.text();
-                        console.error(`OpenAQ API HTTP error! Status: ${response.status}, Raw Response: ${errorText}`);
-                        let errorMessage = `Failed to fetch AQI data for "${locationName}". `;
-                        if (response.status === 400 || response.status === 404) {
-                            errorMessage += "No data found for this location. It might be temporarily offline or not reporting PM2.5.";
-                        } else if (response.status === 429) {
-                            errorMessage += "You've made too many requests. Please wait a moment and try again.";
-                        } else if (response.status >= 500) {
-                            errorMessage += "The air quality data server is experiencing issues. Please try again later.";
-                        } else {
-                            errorMessage += `An unexpected server response occurred (Status: ${response.status}).`;
-                        }
-                        resultDisplay.innerHTML = `<div class="alert alert-danger">${errorMessage}</div>`;
-                        return;
-                    }
+                    // Ask Gemini to provide detailed AQI data and suggestion based on the simulated value
+                    const prompt = `Simulate a detailed PM2.5 air quality reading for "${locationName}" in "${cityName}", assuming a PM2.5 value of ${simulatedAqiValue.toFixed(2)} µg/m³. Provide the AQI category (e.g., Good, Moderate, Unhealthy for Sensitive Groups, Unhealthy, Very Unhealthy, Hazardous) and a concise health suggestion for that category. Return in JSON format.`;
+                    const schema = {
+                        type: "OBJECT",
+                        properties: {
+                            "aqiValue": { "type": "NUMBER" },
+                            "location": { "type": "STRING" },
+                            "parameter": { "type": "STRING" },
+                            "category": { "type": "STRING" },
+                            "suggestion": { "type": "STRING" }
+                        },
+                        required: ["aqiValue", "location", "parameter", "category", "suggestion"]
+                    };
 
-                    const data = await response.json();
-
-                    if (data.results && data.results.length > 0) {
-                        const measurement = data.results[0].measurements.find(m => m.parameter === 'pm25');
-                        if (measurement) {
-                            const aqiValue = measurement.value;
-                            const location = data.results[0].location;
-                            const parameter = measurement.parameter.toUpperCase();
-                            const suggestionDetails = getHealthSuggestion(aqiValue);
-
-                            resultDisplay.innerHTML = `
-                                <div class="alert ${suggestionDetails.colorClass} text-white">
-                                    <h4 class="alert-heading">Air Quality in ${location} (${cityName.charAt(0).toUpperCase() + cityName.slice(1)})</h4>
-                                    <p><strong>${parameter} Level:</strong> ${aqiValue.toFixed(2)} µg/m³</p>
-                                    <hr>
-                                    <p class="mb-0">${suggestionDetails.suggestion}</p>
-                                </div>`;
-                            await generateAIHealthTips(cityName, aqiValue, suggestionDetails.category);
-                        } else {
-                            resultDisplay.innerHTML = `<div class="alert alert-info">No PM2.5 data found for station "${locationName}". Please try another station.</div>`;
-                        }
+                    const aqiDetails = await callGeminiAPI(prompt, schema);
+                    
+                    if (aqiDetails && aqiDetails.aqiValue !== null) {
+                        resultDisplay.innerHTML = `
+                            <div class="alert ${getColorClass(aqiDetails.category)} text-white">
+                                <h4 class="alert-heading">Air Quality in ${aqiDetails.location} (${cityName.charAt(0).toUpperCase() + cityName.slice(1)})</h4>
+                                <p><strong>${aqiDetails.parameter} Level:</strong> ${aqiDetails.aqiValue.toFixed(2)} µg/m³</p>
+                                <hr>
+                                <p class="mb-0"><strong>${aqiDetails.category}:</strong> ${aqiDetails.suggestion}</p>
+                            </div>`;
+                        await generateAIHealthTips(cityName, aqiDetails.aqiValue, aqiDetails.category);
                     } else {
-                        resultDisplay.innerHTML = `<div class="alert alert-danger">No data found for station "${locationName}". It might be temporarily offline or not reporting PM2.5.</div>`;
+                        resultDisplay.innerHTML = `<div class="alert alert-danger">Could not simulate detailed AQI data for station "${locationName}". Please try again.</div>`;
                     }
 
                 } catch (error) {
-                    console.error("OpenAQ API Fetch Error:", error);
-                    let displayMessage = `An unexpected error occurred while fetching AQI data.`;
-                    if (error instanceof TypeError && String(error).includes('Failed to fetch')) {
-                        // This specific message suggests a CORS issue or network blockade
-                        displayMessage = `Network error: Could not connect to the air quality service. This is often due to browser security (CORS policy) when hosting on platforms like GitHub Pages. Please try running the app locally or check your browser's console for more details.`;
-                    } else if (error instanceof SyntaxError && String(error).includes('JSON')) {
-                        displayMessage = `Data format error: The air quality service sent an unreadable response.`;
-                    } else {
-                        displayMessage = `An unexpected JavaScript error occurred: ${error.message}.`;
-                    }
-                    resultDisplay.innerHTML = `<div class="alert alert-danger">${displayMessage}</div>`;
+                    console.error("Error fetching detailed AQI from Gemini:", error);
+                    resultDisplay.innerHTML = `<div class="alert alert-danger">${error.message || "An unexpected error occurred while fetching detailed AQI data."}</div>`;
                 } finally {
                     loader.style.display = 'none';
                 }
@@ -388,65 +406,26 @@
                 aiTipsLoader.style.display = 'block'; // Show AI tips loader
 
                 const prompt = `Given that the air quality in ${city} for PM2.5 is ${aqiValue.toFixed(2)} µg/m³, which is categorized as "${aqiCategory}", provide 3-4 personalized and actionable health tips for a general resident. Focus on practical advice for daily life (e.g., outdoor activities, ventilation, diet). Keep the tips concise and direct.`;
-                let chatHistory = [];
-                chatHistory.push({ role: "user", parts: [{ text: prompt }] });
-                const payload = { contents: chatHistory };
-                const apiKey = ""; // Canvas will provide this dynamically
-
-                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
-
+                
                 try {
-                    const response = await fetch(apiUrl, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(payload)
-                    });
-
-                    // Check if the response is okay before parsing JSON
-                    if (!response.ok) {
-                        const errorText = await response.text();
-                        console.error(`Gemini API HTTP error! Status: ${response.status}, Raw Response: ${errorText}`);
-                        throw new Error(`Gemini API returned status ${response.status}: ${errorText.substring(0, 100)}...`);
-                    }
-
-                    const result = await response.json();
-
-                    if (result.candidates && result.candidates.length > 0 &&
-                        result.candidates[0].content && result.candidates[0].content.parts &&
-                        result.candidates[0].content.parts.length > 0) {
-                        const aiText = result.candidates[0].content.parts[0].text;
-                        aiTipsDisplay.innerHTML = `
-                            <div class="card mt-3">
-                                <div class="card-header bg-success text-white">
-                                    <h5 class="mb-0">Personalized Health Tips (AI-Powered)</h5>
-                                </div>
-                                <div class="card-body">
-                                    <p>${aiText.replace(/\n/g, '<br>')}</p>
-                                </div>
+                    const aiText = await callGeminiAPI(prompt); // No schema needed for free-form text
+                    aiTipsDisplay.innerHTML = `
+                        <div class="card mt-3">
+                            <div class="card-header bg-success text-white">
+                                <h5 class="mb-0">Personalized Health Tips (AI-Powered)</h5>
                             </div>
-                        `;
-                    } else {
-                        aiTipsDisplay.innerHTML = `<div class="alert alert-info mt-3">Could not generate personalized tips at this moment (no candidates found).</div>`;
-                        console.warn("Gemini API response contained no valid candidates:", result);
-                    }
+                            <div class="card-body">
+                                <p>${aiText.replace(/\n/g, '<br>')}</p>
+                            </div>
+                        </div>
+                    `;
                 } catch (error) {
-                    console.error("Gemini API Fetch Error:", error);
-                    let displayMessage = `An unexpected error occurred while generating personalized tips.`;
-                    if (error instanceof TypeError && String(error).includes('Failed to fetch')) {
-                        displayMessage = `Network error: Could not connect to the AI service. Please check your internet connection or try again later.`;
-                    } else if (error instanceof SyntaxError && String(error).includes('JSON')) {
-                        displayMessage = `AI service data format error: The AI service sent an unreadable response.`;
-                    } else if (error.message.includes('status 429')) {
-                        displayMessage = `AI service rate limit exceeded. Please wait a moment and try again.`;
-                    } else {
-                         displayMessage = `An unexpected AI generation error occurred: ${error.message}.`;
-                    }
-                    aiTipsDisplay.innerHTML = `<div class="alert alert-danger mt-3">${displayMessage}</div>`;
+                    console.error("Error generating AI health tips from Gemini:", error);
+                    aiTipsDisplay.innerHTML = `<div class="alert alert-danger mt-3">${error.message || "An unexpected error occurred while generating personalized tips."}</div>`;
                 } finally {
                     aiTipsLoader.style.display = 'none'; // Hide AI tips loader
                 }
             };
-
 
             // Function to handle the initial city search and display locations
             const handleCitySearch = async (city, originalCityName) => {
@@ -456,67 +435,34 @@
                 locationListContainer.innerHTML = ''; // Clear previous location list
                 aiTipsLoader.style.display = 'none'; // Ensure AI loader is hidden
 
-                // OpenAQ API URL - fetching latest data for locations within the city, specifically for pm25
-                const apiUrl = `https://api.openaq.org/v2/latest?limit=100&city=${encodeURIComponent(city)}&parameter=pm25&order_by=location`;
-
                 try {
-                    const response = await fetch(apiUrl);
-                    if (!response.ok) {
-                        const errorText = await response.text();
-                        console.error(`OpenAQ API HTTP error! Status: ${response.status}, Raw Response: ${errorText}`);
-                        let errorMessage = `Failed to fetch air quality locations for "${originalCityName}". `;
-
-                        if (response.status === 400 || response.status === 404) {
-                            errorMessage += `No locations found for "${originalCityName}" with PM2.5 data. Please check the city name or try another city.`;
-                        } else if (response.status === 429) {
-                            errorMessage += `You've made too many requests. Please wait a moment and try again.`;
-                        } else if (response.status >= 500) {
-                            errorMessage += "The air quality data server is experiencing issues. Please try again later.";
-                        } else {
-                            errorMessage += `An unexpected server response occurred (Status: ${response.status}).`;
+                    // Ask Gemini to list plausible mock locations and simulated AQI values for them
+                    const prompt = `For the city of "${city}", generate a list of 3-5 plausible air quality monitoring station names (locations) and a simulated PM2.5 air quality index (AQI) value for each. Ensure the AQI values cover a range of categories (Good, Moderate, Unhealthy for Sensitive Groups, Unhealthy, etc.). Return as a JSON array of objects.`;
+                    const schema = {
+                        type: "ARRAY",
+                        items: {
+                            type: "OBJECT",
+                            properties: {
+                                "locationName": { "type": "STRING" },
+                                "simulatedAqiValue": { "type": "NUMBER" }
+                            },
+                            required: ["locationName", "simulatedAqiValue"]
                         }
-                        resultDisplay.innerHTML = `<div class="alert alert-danger">${errorMessage}</div>`;
-                        return;
-                    }
+                    };
+                    const locations = await callGeminiAPI(prompt, schema);
                     
-                    const data = await response.json();
-                    
-                    if (!data.results || data.results.length === 0) {
-                        resultDisplay.innerHTML = `<div class="alert alert-danger">No PM2.5 air quality stations found for "${originalCityName}". This could be due to:
-                            <ul>
-                                <li>The city name might be spelled differently in the database (e.g., "New York" instead of "New York City").</li>
-                                <li>No active PM2.5 sensors reporting data for this specific city.</li>
-                                <li>The city might not be covered by OpenAQ or the data is not recent.</li>
-                            </ul>
-                            Please try a common spelling, a major nearby city, or a country capital.
-                        </div>`;
-                        return;
-                    }
-
-                    // Extract unique locations with PM2.5 data
-                    const uniqueLocations = new Map(); // Using Map to maintain order and uniqueness
-                    data.results.forEach(res => {
-                        const pm25Measurement = res.measurements.find(m => m.parameter === 'pm25');
-                        if (pm25Measurement && res.location) {
-                            // Use location name as key for uniqueness
-                            uniqueLocations.set(res.location, {
-                                location: res.location,
-                                city: res.city,
-                                country: res.country,
-                                value: pm25Measurement.value // Store value for potential display preview
-                            });
-                        }
-                    });
-
-                    if (uniqueLocations.size > 0) {
+                    if (locations && locations.length > 0) {
                         let locationsHtml = `<p>Select a station in ${originalCityName.charAt(0).toUpperCase() + originalCityName.slice(1)}:</p><ul class="list-group">`;
-                        uniqueLocations.forEach((locData) => {
+                        locations.forEach((locData) => {
+                            // Ensure the AQI value is within a reasonable range for display purposes
+                            const displayAqi = Math.max(0, Math.min(500, locData.simulatedAqiValue)); 
                             locationsHtml += `
                                 <li class="list-group-item list-group-item-action" 
-                                    data-location="${locData.location}" 
-                                    data-city="${locData.city}"
+                                    data-location="${locData.locationName}" 
+                                    data-city="${originalCityName}"
+                                    data-aqi="${displayAqi}"
                                     style="cursor: pointer;">
-                                    <strong>${locData.location}</strong> (${locData.value.toFixed(2)} µg/m³)
+                                    <strong>${locData.locationName}</strong> (Simulated PM2.5: ${displayAqi.toFixed(2)} µg/m³)
                                 </li>`;
                         });
                         locationsHtml += `</ul>`;
@@ -527,36 +473,39 @@
                             item.addEventListener('click', () => {
                                 const selectedLocation = item.dataset.location;
                                 const selectedCity = item.dataset.city;
-                                fetchAndDisplayAQIForLocation(selectedLocation, selectedCity);
+                                const simulatedAqi = parseFloat(item.dataset.aqi); // Pass the simulated AQI
+                                fetchAndDisplayAQIForLocation(selectedLocation, selectedCity, simulatedAqi);
                             });
                         });
-                        resultDisplay.innerHTML = ''; // Clear previous messages if locations are found
                     } else {
-                        resultDisplay.innerHTML = `<div class="alert alert-danger">No PM2.5 air quality stations found for "${originalCityName}". Please try a common spelling, a major nearby city, or a country capital.</div>`;
+                        resultDisplay.innerHTML = `<div class="alert alert-danger">The AI could not generate air quality stations for "${originalCityName}". Please try a different city.</div>`;
                     }
 
                 } catch (error) {
-                    console.error("OpenAQ API Fetch Error (for locations):", error);
-                    let displayMessage = `An unexpected error occurred while searching for stations.`;
-                    if (error instanceof TypeError && String(error).includes('Failed to fetch')) {
-                        // This specific message suggests a CORS issue or network blockade
-                        displayMessage = `Network error: Could not connect to the air quality service. This is often due to browser security (CORS policy) when hosting on platforms like GitHub Pages. Please try running the app locally or check your browser's console for more details.`;
-                    } else if (error instanceof SyntaxError && String(error).includes('JSON')) {
-                        displayMessage = `Data format error: The air quality service sent an unreadable response when fetching locations.`;
-                    } else {
-                         displayMessage = `An unexpected JavaScript error occurred: ${error.message}.`;
-                    }
-                    resultDisplay.innerHTML = `<div class="alert alert-danger">${displayMessage}</div>`;
+                    console.error("Error searching for locations from Gemini:", error);
+                    resultDisplay.innerHTML = `<div class="alert alert-danger">${error.message || "An unexpected error occurred while searching for stations."}</div>`;
                 } finally {
                     loader.style.display = 'none';
                 }
             };
 
 
+            // Helper function to get Bootstrap alert color class based on category
+            const getColorClass = (category) => {
+                switch (category) {
+                    case "Good": return "alert-success";
+                    case "Moderate": return "alert-warning";
+                    case "Unhealthy for Sensitive Groups": return "alert-orange";
+                    case "Unhealthy": return "alert-danger";
+                    case "Very Unhealthy": return "alert-purple";
+                    case "Hazardous": return "alert-maroon";
+                    default: return "alert-secondary";
+                }
+            };
+
             // Event listener for form submission (initial city search)
             aqiForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
-                // Clean the city input: remove leading/trailing whitespace, non-alphanumeric characters at the end, and multiple internal spaces
                 let city = cityInput.value.trim().replace(/[^a-zA-Z\s]+$/, '').replace(/\s+/g, ' ');
                 
                 if (!city) {
