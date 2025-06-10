@@ -417,15 +417,32 @@
                     
                     if (data.status === 'success' && data.data && data.data.current && data.data.current.pollution) {
                         const aqiValue = data.data.current.pollution.aqius; // US AQI
-                        const pollutant = data.data.current.pollution.main; // Dominant pollutant
+                        // Safely get pollutant, defaulting to empty string if undefined/null
+                        const pollutant = data.data.current.pollution.main || ''; 
+                        const pollutantDisplay = pollutant.toUpperCase(); // Now safe
+
                         const locationName = data.data.city; // IQAir provides city directly
                         const suggestionDetails = getHealthSuggestion(aqiValue);
 
+                        // Safely get state and country, defaulting to empty string for display
+                        const displayState = data.data.state || '';
+                        const displayCountry = data.data.country || '';
+
+                        let locationDetail = '';
+                        if (displayState && displayCountry) {
+                            locationDetail = ` (${displayState}, ${displayCountry})`;
+                        } else if (displayState) {
+                            locationDetail = ` (${displayState})`;
+                        } else if (displayCountry) {
+                            locationDetail = ` (${displayCountry})`;
+                        }
+
+
                         resultDisplay.innerHTML = `
                             <div class="alert ${suggestionDetails.colorClass} text-white">
-                                <h4 class="alert-heading">Air Quality in ${locationName} (${data.data.state}, ${data.data.country})</h4>
+                                <h4 class="alert-heading">Air Quality in ${locationName}${locationDetail}</h4>
                                 <p><strong>AQI (US):</strong> ${aqiValue}</p>
-                                <p><strong>Dominant Pollutant:</strong> ${pollutant.toUpperCase()}</p>
+                                <p><strong>Dominant Pollutant:</strong> ${pollutantDisplay}</p>
                                 <hr>
                                 <p class="mb-0"><strong>${suggestionDetails.category}:</strong> ${suggestionDetails.suggestion}</p>
                             </div>`;
